@@ -1,59 +1,27 @@
-const { ApolloServer, gql } = require('apollo-server-express')
 const express = require('express')
+const { ApolloServer } = require('apollo-server-express')
+require('dotenv').config()
+
+// Local module imports
+const db = require('./db')
+const models = require('./models')
+const typeDefs = require('./schema')
+const resolvers = require('./resolvers')
+
+// Run our server on a port specified in our .env file or port 4000
+const port = process.env.PORT || 4000
+const DB_HOST = process.env.DB_HOST
 
 const app = express()
-const port = process.env.PORT || 4000
 
-const typeDefs = gql`
-  type Query {
-    hello: String
-    notes: [Note!]!
-    note(id: ID!): Note!
-  }
-
-  type Mutation {
-    newNote(content: String!): Note!
-  }
-
-  type Note {
-    id: ID!
-    content: String!
-    author: String!
-  }
-`
-
-const resolvers = {
-  Query: {
-    notes: () => notes,
-    note: (parent, { id }) => {
-      return notes.find((note) => note.id === id)
-    },
-  },
-  Mutation: {
-    newNote: (parent, { content }) => {
-      const note = {
-        author: 'Dillon Morris',
-        id: String(notes.length + 1),
-        content,
-      }
-      notes.push(content)
-      return note
-    },
-  },
-}
-
-let notes = [
-  { id: '1', content: 'This is a JS note', author: 'Dillon Morris' },
-  { id: '2', content: 'This is another JS note', author: 'Harlow Everly' },
-  {
-    id: '3',
-    content: 'Oh hey look, another JS note!',
-    author: 'Riley Harrison',
-  },
-]
+db.connect(DB_HOST)
 
 // Apollo Server setup
-const server = new ApolloServer({ typeDefs, resolvers })
+const server = new ApolloServer({
+  typeDefs,
+  resolvers,
+  context: () => ({ models }),
+})
 
 // Apply the Apollo GraphQL middleware and set the path to /api
 server.applyMiddleware({ app, path: '/api' })
